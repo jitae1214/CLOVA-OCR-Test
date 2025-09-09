@@ -1,0 +1,39 @@
+# OCR 테스트 애플리케이션 설정 파일 예제
+# 이 파일을 application.properties로 복사하고 실제 값으로 수정하세요
+
+spring.application.name=ocr_test
+
+# ========================================
+# 클로바 OCR API 설정
+# ========================================
+# 네이버 클라우드 플랫폼에서 발급받은 실제 값으로 변경해주세요
+# 1. 네이버 클라우드 플랫폼 로그인
+# 2. AI Service > CLOVA OCR 서비스 신청
+# 3. API Gateway 생성 및 OCR API 연동
+# 4. 발급받은 URL과 Secret Key를 아래에 입력
+
+clova.ocr.api-url=https://your-api-gateway-url-here
+clova.ocr.secret-key=your-secret-key-here
+
+# ========================================
+# 파일 업로드 설정
+# ========================================
+# 최대 파일 크기 설정 (기본: 10MB)
+spring.servlet.multipart.max-file-size=10MB
+spring.servlet.multipart.max-request-size=10MB
+
+# ========================================
+# 서버 설정
+# ========================================
+# 서버 포트 (기본값: 8080)
+server.port=8080
+
+# ========================================
+# 개발 환경 설정
+# ========================================
+# Thymeleaf 캐시 비활성화 (개발 시에만)
+spring.thymeleaf.cache=false
+
+# 로그 레벨 설정 (디버깅 시 사용)
+# logging.level.com.example.ocr_test=DEBUG
+# logging.level.root=INFO

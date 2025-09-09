@@ -1,0 +1,173 @@
+<!DOCTYPE html>
+<html lang="ko" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>OCR 결과 - 클로바 OCR 테스트</title>
+    
+    <!-- 외부 CSS 라이브러리 -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    
+    <!-- 커스텀 CSS -->
+    <link href="/css/result.css" rel="stylesheet">
+</head>
+<body>
+    <!-- 메인 컨테이너 -->
+    <div class="container-fluid">
+        <div class="row justify-content-center">
+            <div class="col-12">
+                <!-- 메인 카드 -->
+                <div class="main-card fade-in-up">
+                    <!-- 카드 헤더 -->
+                    <div class="card-header">
+                        <h2>
+                            <i class="fas fa-sparkles me-3"></i>
+                            AI 분석 완료
+                        </h2>
+                        <p class="text-muted mt-2 mb-0">이미지에서 텍스트를 성공적으로 추출했습니다</p>
+                    </div>
+                    
+                    <!-- 카드 바디 -->
+                    <div class="card-body">
+                        
+                        <!-- 파일 정보 섹션 -->
+                        <div class="file-info mb-3">
+                            <h5><i class="fas fa-file-image me-2"></i>업로드된 파일 정보</h5>
+                            <p class="mb-1">
+                                <strong>파일명:</strong> <span th:text="${fileName}"></span>
+                            </p>
+                            <p class="mb-0">
+                                <strong>파일 크기:</strong> <span th:text="${fileSize}"></span>
+                            </p>
+                        </div>
+
+                        <!-- 2단 레이아웃 -->
+                        <div th:if="${imageId != null}" class="row g-4 equal-height-row">
+                            
+                            <!-- 왼쪽: 이미지 영역 -->
+                            <div class="col-xl-7 col-lg-8 col-md-12 equal-height-col">
+                                <div class="image-section" style="position: sticky; top: 2rem;">
+                                    <h5>
+                                        <i class="fas fa-image me-2"></i>
+                                        업로드된 이미지
+                                    </h5>
+                                    <div class="image-container position-relative" style="border-radius: 16px; overflow: hidden; background: rgba(0, 0, 0, 0.2); flex: 1; display: flex; align-items: center; justify-content: center;">
+                                        <img th:src="@{'/image/' + ${imageId}}" 
+                                             class="img-fluid" 
+                                             id="uploadedImage" 
+                                             style="width: 100%; height: 100%; max-height: none; object-fit: contain; display: block;"
+                                             alt="업로드된 이미지">
+                                        <div id="highlightOverlay" class="position-absolute" 
+                                             style="top: 0; left: 0; pointer-events: none; z-index: 100;"></div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- 오른쪽: 텍스트 영역 -->
+                            <div class="col-xl-5 col-lg-4 col-md-12 equal-height-col">
+                                <div class="text-section">
+                                    <h5>
+                                        <div>
+                                            <i class="fas fa-brain me-2"></i>
+                                            AI 추출 결과 (<span th:text="${#lists.size(extractedTexts)}"></span>개)
+                                        </div>
+                                        <div>
+                                            <button class="btn btn-sm btn-outline-secondary" onclick="clearHighlight()" title="하이라이트 제거">
+                                                <i class="fas fa-eraser me-1"></i>하이라이트 지우기
+                                            </button>
+                                        </div>
+                                    </h5>
+
+                                    <!-- 텍스트 리스트 컨테이너 -->
+                                    <div class="text-list-container">
+                                    <div th:if="${extractedTexts != null and !extractedTexts.empty}">
+                                        <div th:each="text, iterStat : ${extractedTexts}" 
+                                             class="text-item position-relative" 
+                                             th:data-index="${iterStat.index}"
+                                             onclick="highlightTextBox(this)">
+                                            <div class="d-flex justify-content-between align-items-start">
+                                                <div class="flex-grow-1">
+                                                        <div class="d-flex align-items-start">
+                                                            <span class="badge me-3 flex-shrink-0" th:text="${iterStat.count}"></span>
+                                                            <div class="text-content flex-grow-1" th:text="${text}"></div>
+                                                    </div>
+                                                </div>
+                                                <button class="btn btn-sm btn-outline-secondary ms-2 copy-individual-btn" 
+                                                        th:data-text="${text}" 
+                                                        onclick="copyTextFromData(this); event.stopPropagation();" 
+                                                        title="이 텍스트 복사">
+                                                    <i class="fas fa-copy"></i>
+                                                </button>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    
+                                        <!-- 텍스트가 없을 때 -->
+                                    <div th:if="${extractedTexts == null or extractedTexts.empty}" 
+                                         class="text-center p-5 text-muted">
+                                        <i class="fas fa-search fa-3x mb-3"></i>
+                                        <p>추출된 텍스트가 없습니다.</p>
+                                        </div>
+                                    </div>
+                                </div>
+                                    </div>
+                                </div>
+
+                        <!-- 전체 텍스트 보기 아코디언 -->
+                        <div th:if="${extractedTexts != null and !extractedTexts.empty}" class="mt-4">
+                                    <div class="accordion" id="fullTextAccordion">
+                                        <div class="accordion-item">
+                                            <h2 class="accordion-header" id="fullTextHeader">
+                                                <button class="accordion-button collapsed" type="button" 
+                                                        data-bs-toggle="collapse" data-bs-target="#fullTextCollapse">
+                                                    <i class="fas fa-align-left me-2"></i>
+                                                    전체 텍스트 보기
+                                                </button>
+                                            </h2>
+                                            <div id="fullTextCollapse" class="accordion-collapse collapse" 
+                                                 data-bs-parent="#fullTextAccordion">
+                                                <div class="accordion-body">
+                                                    <div id="allText" th:text="${#strings.listJoin(extractedTexts, ' ')}" 
+                                                         style="white-space: pre-wrap; font-size: 14px; line-height: 1.5;"></div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- 텍스트가 없을 때 표시 -->
+                        <div th:if="${extractedTexts == null or extractedTexts.empty}" class="text-center py-4">
+                            <i class="fas fa-search fa-3x text-muted mb-3"></i>
+                            <p class="text-muted">이미지에서 텍스트를 찾을 수 없습니다.</p>
+                            <p class="text-muted">다른 이미지를 시도해보세요.</p>
+                        </div>
+
+                        <!-- 액션 버튼 -->
+                        <div class="text-center mt-4">
+                            <a href="/" class="btn btn-primary btn-lg">
+                                <i class="fas fa-upload me-2"></i>
+                                새 이미지 분석하기
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 외부 JavaScript 라이브러리 -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
+    
+    <!-- 커스텀 JavaScript -->
+    <script src="/js/result.js"></script>
+    
+    <!-- Thymeleaf 변수 전달 -->
+    <script th:inline="javascript">
+        /*<![CDATA[*/
+        window.textBoxes = [[${textBoxes}]];
+        console.log('Thymeleaf에서 전달된 textBoxes:', window.textBoxes);
+        /*]]>*/
+    </script>
+</body>
+</html>
