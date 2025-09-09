@@ -98,7 +98,7 @@ src/
 
 1. **프로젝트 클론**
    ```bash
-   git clone <repository-url>
+   git clone https://github.com/jitae1214/CLOVA-OCR-Test.git
    cd ocr_test
    ```
 
