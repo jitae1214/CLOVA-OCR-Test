@@ -1,0 +1,441 @@
+<!DOCTYPE html>
+<html lang="ko" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>위치 선택 결과 - OCR 테스트</title>
+    <link rel="stylesheet" href="/css/menu-analysis.css">
+    <style>
+        .result-card {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 30px;
+            border-radius: 20px;
+            margin-bottom: 30px;
+            text-align: center;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+        }
+        
+        .result-card h2 {
+            margin-bottom: 20px;
+            font-size: 2em;
+        }
+        
+        .address-info {
+            background: rgba(255, 255, 255, 0.1);
+            padding: 20px;
+            border-radius: 15px;
+            margin-bottom: 20px;
+            backdrop-filter: blur(10px);
+        }
+        
+        .address-text {
+            font-size: 1.3em;
+            font-weight: 500;
+            margin-bottom: 15px;
+            word-break: keep-all;
+        }
+        
+        .coordinates-info {
+            display: flex;
+            justify-content: center;
+            gap: 30px;
+            margin-bottom: 20px;
+            flex-wrap: wrap;
+        }
+        
+        .coordinate-item {
+            background: rgba(255, 255, 255, 0.2);
+            padding: 15px 20px;
+            border-radius: 10px;
+            backdrop-filter: blur(5px);
+        }
+        
+        .coordinate-label {
+            font-size: 0.9em;
+            opacity: 0.8;
+            margin-bottom: 5px;
+        }
+        
+        .coordinate-value {
+            font-size: 1.1em;
+            font-weight: bold;
+            font-family: 'Courier New', monospace;
+        }
+        
+        .action-buttons {
+            display: flex;
+            gap: 15px;
+            justify-content: center;
+            flex-wrap: wrap;
+            margin-top: 30px;
+        }
+        
+        .btn {
+            padding: 15px 30px;
+            border: none;
+            border-radius: 25px;
+            cursor: pointer;
+            font-weight: 500;
+            transition: all 0.3s ease;
+            text-decoration: none;
+            display: inline-block;
+            text-align: center;
+            font-size: 1em;
+        }
+        
+        .btn-primary {
+            background: rgba(255, 255, 255, 0.2);
+            color: white;
+            border: 2px solid rgba(255, 255, 255, 0.3);
+        }
+        
+        .btn-success {
+            background: rgba(40, 167, 69, 0.9);
+            color: white;
+        }
+        
+        .btn-info {
+            background: rgba(23, 162, 184, 0.9);
+            color: white;
+        }
+        
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
+        }
+        
+        .btn-primary:hover {
+            background: rgba(255, 255, 255, 0.3);
+            border-color: rgba(255, 255, 255, 0.5);
+        }
+        
+        .copy-success {
+            background: rgba(40, 167, 69, 0.2);
+            border: 2px solid rgba(40, 167, 69, 0.5);
+            animation: pulse 0.5s ease-in-out;
+        }
+        
+        @keyframes pulse {
+            0% { transform: scale(1); }
+            50% { transform: scale(1.05); }
+            100% { transform: scale(1); }
+        }
+        
+        .map-link {
+            background: rgba(255, 255, 255, 0.1);
+            padding: 20px;
+            border-radius: 15px;
+            margin-bottom: 20px;
+            text-align: center;
+        }
+        
+        .map-link a {
+            color: #ffeb3b;
+            text-decoration: none;
+            font-weight: 500;
+        }
+        
+        .map-link a:hover {
+            text-decoration: underline;
+        }
+        
+        .share-section {
+            background: rgba(255, 255, 255, 0.1);
+            padding: 20px;
+            border-radius: 15px;
+            margin-top: 20px;
+        }
+        
+        .share-buttons {
+            display: flex;
+            gap: 10px;
+            justify-content: center;
+            flex-wrap: wrap;
+            margin-top: 15px;
+        }
+        
+        .share-btn {
+            background: rgba(255, 255, 255, 0.2);
+            border: 1px solid rgba(255, 255, 255, 0.3);
+            color: white;
+            padding: 8px 16px;
+            border-radius: 20px;
+            cursor: pointer;
+            font-size: 0.9em;
+            transition: all 0.3s ease;
+        }
+        
+        .share-btn:hover {
+            background: rgba(255, 255, 255, 0.3);
+            transform: translateY(-1px);
+        }
+        
+        @media (max-width: 768px) {
+            .coordinates-info {
+                flex-direction: column;
+                gap: 15px;
+            }
+            
+            .action-buttons {
+                flex-direction: column;
+                align-items: center;
+            }
+            
+            .share-buttons {
+                flex-direction: column;
+                align-items: center;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>📍 위치 선택 결과</h1>
+            <p class="subtitle">선택하신 위치의 상세 정보입니다</p>
+        </header>
+
+        <nav class="nav-menu">
+            <a href="/" class="nav-link">홈으로</a>
+            <a href="/menu-analysis" class="nav-link">메뉴 분석</a>
+            <a href="/map" class="nav-link">지도 선택</a>
+            <a href="/map" class="nav-link primary">새로 선택</a>
+        </nav>
+
+        <main class="main-content">
+            <!-- 결과 카드 -->
+            <div class="result-card">
+                <h2>🎯 선택된 위치</h2>
+                
+                <div class="address-info">
+                    <div class="address-text" id="addressText" th:text="${address}">주소를 불러오는 중...</div>
+                </div>
+                
+                <div class="coordinates-info">
+                    <div class="coordinate-item">
+                        <div class="coordinate-label">위도</div>
+                        <div class="coordinate-value" th:text="${latitude}">-</div>
+                    </div>
+                    <div class="coordinate-item">
+                        <div class="coordinate-label">경도</div>
+                        <div class="coordinate-value" th:text="${longitude}">-</div>
+                    </div>
+                </div>
+                
+                <!-- 구글 지도 링크 -->
+                <div class="map-link">
+                    <p>📍 <a th:href="@{https://www.google.com/maps?q={lat},{lng}(lat=${latitude}, lng=${longitude})}" 
+                              target="_blank" rel="noopener noreferrer">
+                        구글 지도에서 보기
+                    </a></p>
+                </div>
+            </div>
+
+            <!-- 액션 버튼들 -->
+            <div class="action-buttons">
+                <button class="btn btn-success" onclick="copyToClipboard('address')">
+                    📋 주소 복사
+                </button>
+                <button class="btn btn-info" onclick="copyToClipboard('coordinates')">
+                    📐 좌표 복사
+                </button>
+                <button class="btn btn-primary" onclick="shareLocation()">
+                    🔗 공유하기
+                </button>
+            </div>
+
+            <!-- 공유 섹션 -->
+            <div class="share-section">
+                <h3>🔗 위치 공유</h3>
+                <p>선택한 위치를 다른 사람과 공유하세요!</p>
+                
+                <div class="share-buttons">
+                    <button class="share-btn" onclick="shareOnKakao()">
+                        💬 카카오톡
+                    </button>
+                    <button class="share-btn" onclick="shareOnSMS()">
+                        📱 문자메시지
+                    </button>
+                    <button class="share-btn" onclick="shareOnEmail()">
+                        📧 이메일
+                    </button>
+                    <button class="share-btn" onclick="shareOnSocial()">
+                        🌐 소셜미디어
+                    </button>
+                </div>
+            </div>
+
+            <!-- 다시 선택하기 -->
+            <div class="new-analysis">
+                <a href="/map" class="new-analysis-btn">
+                    🗺️ 다른 위치 선택하기
+                </a>
+            </div>
+        </main>
+
+        <footer>
+            <p>&copy; 2024 OCR 테스트 애플리케이션</p>
+        </footer>
+    </div>
+
+    <script>
+        // 페이지 데이터
+        const address = /*[[${address}]]*/ '';
+        const latitude = /*[[${latitude}]]*/ '';
+        const longitude = /*[[${longitude}]]*/ '';
+        
+        // 클립보드 복사 함수
+        function copyToClipboard(type) {
+            let text = '';
+            
+            if (type === 'address') {
+                text = address;
+            } else if (type === 'coordinates') {
+                text = `${latitude}, ${longitude}`;
+            }
+            
+            if (navigator.clipboard && window.isSecureContext) {
+                navigator.clipboard.writeText(text).then(() => {
+                    showCopySuccess(type);
+                }).catch(() => {
+                    fallbackCopyTextToClipboard(text);
+                });
+            } else {
+                fallbackCopyTextToClipboard(text);
+            }
+        }
+        
+        // 클립보드 복사 폴백 함수
+        function fallbackCopyTextToClipboard(text) {
+            const textArea = document.createElement('textarea');
+            textArea.value = text;
+            textArea.style.position = 'fixed';
+            textArea.style.left = '-999999px';
+            textArea.style.top = '-999999px';
+            document.body.appendChild(textArea);
+            textArea.focus();
+            textArea.select();
+            
+            try {
+                const successful = document.execCommand('copy');
+                if (successful) {
+                    showToast('복사되었습니다!', 'success');
+                } else {
+                    showToast('복사에 실패했습니다.', 'error');
+                }
+            } catch (err) {
+                showToast('복사에 실패했습니다.', 'error');
+            }
+            
+            document.body.removeChild(textArea);
+        }
+        
+        // 복사 성공 표시
+        function showCopySuccess(type) {
+            const buttons = document.querySelectorAll('.btn');
+            buttons.forEach(btn => {
+                if (btn.textContent.includes(type === 'address' ? '주소 복사' : '좌표 복사')) {
+                    btn.classList.add('copy-success');
+                    setTimeout(() => {
+                        btn.classList.remove('copy-success');
+                    }, 500);
+                }
+            });
+            showToast(type === 'address' ? '주소가 복사되었습니다!' : '좌표가 복사되었습니다!', 'success');
+        }
+        
+        // 위치 공유
+        function shareLocation() {
+            const shareData = {
+                title: '선택한 위치',
+                text: `위치: ${address}\n좌표: ${latitude}, ${longitude}`,
+                url: `https://www.google.com/maps?q=${latitude},${longitude}`
+            };
+            
+            if (navigator.share) {
+                navigator.share(shareData);
+            } else {
+                copyToClipboard('address');
+                showToast('주소가 클립보드에 복사되었습니다!', 'success');
+            }
+        }
+        
+        // 카카오톡 공유
+        function shareOnKakao() {
+            const text = `📍 위치 공유\n\n${address}\n좌표: ${latitude}, ${longitude}\n\n구글 지도: https://www.google.com/maps?q=${latitude},${longitude}`;
+            const url = `https://sharer.kakao.com/talk/friends/picker/shortlink?text=${encodeURIComponent(text)}`;
+            window.open(url, '_blank');
+        }
+        
+        // 문자메시지 공유
+        function shareOnSMS() {
+            const text = `📍 위치 공유\n\n${address}\n좌표: ${latitude}, ${longitude}`;
+            const url = `sms:?body=${encodeURIComponent(text)}`;
+            window.location.href = url;
+        }
+        
+        // 이메일 공유
+        function shareOnEmail() {
+            const subject = '위치 공유';
+            const body = `📍 위치 정보\n\n주소: ${address}\n좌표: ${latitude}, ${longitude}\n\n구글 지도: https://www.google.com/maps?q=${latitude},${longitude}`;
+            const url = `mailto:?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
+            window.location.href = url;
+        }
+        
+        // 소셜미디어 공유
+        function shareOnSocial() {
+            const text = `📍 위치 공유: ${address}`;
+            const url = `https://www.google.com/maps?q=${latitude},${longitude}`;
+            
+            // 트위터 공유
+            const twitterUrl = `https://twitter.com/intent/tweet?text=${encodeURIComponent(text)}&url=${encodeURIComponent(url)}`;
+            window.open(twitterUrl, '_blank');
+        }
+        
+        // 토스트 메시지 표시
+        function showToast(message, type = 'success') {
+            // 기존 토스트 제거
+            const existingToast = document.querySelector('.toast');
+            if (existingToast) {
+                existingToast.remove();
+            }
+
+            // 새 토스트 생성
+            const toast = document.createElement('div');
+            toast.className = `toast ${type}`;
+            toast.textContent = message;
+            
+            document.body.appendChild(toast);
+            
+            // 애니메이션 표시
+            setTimeout(() => {
+                toast.classList.add('show');
+            }, 100);
+            
+            // 3초 후 자동 제거
+            setTimeout(() => {
+                toast.classList.remove('show');
+                setTimeout(() => {
+                    if (toast.parentNode) {
+                        toast.parentNode.removeChild(toast);
+                    }
+                }, 300);
+            }, 3000);
+        }
+        
+        // 페이지 로드 시 애니메이션
+        document.addEventListener('DOMContentLoaded', function() {
+            const resultCard = document.querySelector('.result-card');
+            resultCard.style.opacity = '0';
+            resultCard.style.transform = 'translateY(30px)';
+            
+            setTimeout(() => {
+                resultCard.style.transition = 'all 0.8s ease';
+                resultCard.style.opacity = '1';
+                resultCard.style.transform = 'translateY(0)';
+            }, 200);
+        });
+    </script>
+</body>
+</html>

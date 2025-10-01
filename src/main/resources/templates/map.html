@@ -1,0 +1,496 @@
+<!DOCTYPE html>
+<html lang="ko" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>지도 위치 선택 - OCR 테스트</title>
+    <link rel="stylesheet" href="/css/menu-analysis.css">
+    <style>
+        .map-container {
+            height: 500px;
+            width: 100%;
+            border-radius: 15px;
+            overflow: hidden;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+            margin-bottom: 20px;
+        }
+        
+        .location-info {
+            background: #f8f9fa;
+            padding: 20px;
+            border-radius: 10px;
+            margin-bottom: 20px;
+        }
+        
+        .coordinates {
+            display: flex;
+            gap: 15px;
+            margin-bottom: 15px;
+            flex-wrap: wrap;
+        }
+        
+        .coordinate-item {
+            background: white;
+            padding: 10px 15px;
+            border-radius: 8px;
+            border: 1px solid #ddd;
+            font-family: 'Courier New', monospace;
+            font-size: 0.9em;
+        }
+        
+        .coordinate-label {
+            font-weight: bold;
+            color: #667eea;
+            margin-right: 5px;
+        }
+        
+        .action-buttons {
+            display: flex;
+            gap: 15px;
+            justify-content: center;
+            flex-wrap: wrap;
+        }
+        
+        .btn {
+            padding: 12px 24px;
+            border: none;
+            border-radius: 25px;
+            cursor: pointer;
+            font-weight: 500;
+            transition: all 0.3s ease;
+            text-decoration: none;
+            display: inline-block;
+            text-align: center;
+        }
+        
+        .btn-primary {
+            background: linear-gradient(45deg, #667eea, #764ba2);
+            color: white;
+        }
+        
+        .btn-secondary {
+            background: linear-gradient(45deg, #6c757d, #495057);
+            color: white;
+        }
+        
+        .btn-success {
+            background: linear-gradient(45deg, #28a745, #20c997);
+            color: white;
+        }
+        
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
+        }
+        
+        .loading {
+            display: none;
+            text-align: center;
+            padding: 20px;
+        }
+        
+        .loading.show {
+            display: block;
+        }
+        
+        .spinner {
+            border: 3px solid #f3f3f3;
+            border-top: 3px solid #667eea;
+            border-radius: 50%;
+            width: 30px;
+            height: 30px;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 10px;
+        }
+        
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        
+        .map-controls {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 15px;
+            flex-wrap: wrap;
+        }
+        
+        .search-box {
+            flex: 1;
+            min-width: 200px;
+        }
+        
+        .search-box input {
+            width: 100%;
+            padding: 10px 15px;
+            border: 1px solid #ddd;
+            border-radius: 25px;
+            font-size: 1em;
+        }
+        
+        .search-btn {
+            background: linear-gradient(45deg, #ff6b6b, #ee5a24);
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 25px;
+            cursor: pointer;
+            font-weight: 500;
+        }
+        
+        .current-location-btn {
+            background: linear-gradient(45deg, #f39c12, #e67e22);
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 25px;
+            cursor: pointer;
+            font-weight: 500;
+        }
+        
+        @media (max-width: 768px) {
+            .map-container {
+                height: 400px;
+            }
+            
+            .coordinates {
+                flex-direction: column;
+                gap: 10px;
+            }
+            
+            .action-buttons {
+                flex-direction: column;
+                align-items: center;
+            }
+            
+            .map-controls {
+                flex-direction: column;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>🗺️ 지도 위치 선택</h1>
+            <p class="subtitle">지도에서 원하는 위치를 클릭하여 도로명 주소를 확인하세요</p>
+        </header>
+
+        <nav class="nav-menu">
+            <a href="/" class="nav-link">홈으로</a>
+            <a href="/menu-analysis" class="nav-link">메뉴 분석</a>
+            <a href="/map" class="nav-link active">지도 선택</a>
+        </nav>
+
+        <main class="main-content">
+            <!-- 오류 메시지 표시 -->
+            <div th:if="${error}" class="alert alert-error">
+                <h3>❌ 오류</h3>
+                <p th:text="${error}"></p>
+                
+                <!-- 설정 도움말 -->
+                <div th:if="${configHelp}" class="config-help">
+                    <h4>설정 방법:</h4>
+                    <ol>
+                        <li>application.properties 파일을 열어주세요</li>
+                        <li>Google Places API 키를 설정해주세요: <code>google.places.api.key=your-api-key</code></li>
+                        <li>Google Cloud Console에서 Maps JavaScript API와 Geocoding API를 활성화하세요</li>
+                        <li>애플리케이션을 재시작해주세요</li>
+                    </ol>
+                </div>
+            </div>
+
+            <!-- 지도 컨트롤 -->
+            <div th:if="${error == null}" class="map-controls">
+                <div class="search-box">
+                    <input type="text" id="searchInput" placeholder="장소 검색 (예: 강남역, 롯데월드)">
+                </div>
+                <button id="searchBtn" class="search-btn">🔍 검색</button>
+                <button id="currentLocationBtn" class="current-location-btn">📍 현재 위치</button>
+            </div>
+
+            <!-- 구글 지도 -->
+            <div th:if="${error == null}" class="map-container" id="map"></div>
+
+            <!-- 로딩 표시 -->
+            <div class="loading" id="loading">
+                <div class="spinner"></div>
+                <p>주소를 조회하는 중입니다...</p>
+            </div>
+
+            <!-- 위치 정보 -->
+            <div th:if="${error == null}" class="location-info" id="locationInfo" style="display: none;">
+                <h3>📍 선택된 위치</h3>
+                <div class="coordinates">
+                    <div class="coordinate-item">
+                        <span class="coordinate-label">위도:</span>
+                        <span id="latitudeDisplay">-</span>
+                    </div>
+                    <div class="coordinate-item">
+                        <span class="coordinate-label">경도:</span>
+                        <span id="longitudeDisplay">-</span>
+                    </div>
+                </div>
+                <div class="action-buttons">
+                    <button id="getAddressBtn" class="btn btn-success">
+                        🏠 주소 조회하기
+                    </button>
+                    <button id="resetBtn" class="btn btn-secondary">
+                        🔄 초기화
+                    </button>
+                </div>
+            </div>
+
+            <!-- 사용법 안내 -->
+            <div class="usage-guide">
+                <h3>📋 사용법</h3>
+                <div class="guide-steps">
+                    <div class="step">
+                        <div class="step-number">1</div>
+                        <div class="step-content">
+                            <h4>위치 선택</h4>
+                            <p>지도에서 원하는 위치를 클릭하거나 검색하세요</p>
+                        </div>
+                    </div>
+                    <div class="step">
+                        <div class="step-number">2</div>
+                        <div class="step-content">
+                            <h4>좌표 확인</h4>
+                            <p>선택된 위치의 위도, 경도가 표시됩니다</p>
+                        </div>
+                    </div>
+                    <div class="step">
+                        <div class="step-number">3</div>
+                        <div class="step-content">
+                            <h4>주소 조회</h4>
+                            <p>"주소 조회하기" 버튼을 클릭하여 도로명 주소를 확인하세요</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 팁 -->
+            <div class="tips">
+                <h3>💡 더 좋은 결과를 위한 팁</h3>
+                <ul>
+                    <li>정확한 위치를 선택하기 위해 지도를 확대하세요</li>
+                    <li>검색 기능을 사용하여 특정 장소를 빠르게 찾을 수 있습니다</li>
+                    <li>"현재 위치" 버튼으로 현재 위치를 자동으로 설정할 수 있습니다</li>
+                    <li>도로나 건물 위를 클릭하면 더 정확한 주소를 얻을 수 있습니다</li>
+                </ul>
+            </div>
+        </main>
+
+        <footer>
+            <p>&copy; 2024 OCR 테스트 애플리케이션</p>
+        </footer>
+    </div>
+
+    <!-- 구글 지도 API -->
+    <script th:if="${apiKey != null}" th:src="'https://maps.googleapis.com/maps/api/js?key=' + ${apiKey} + '&libraries=places&language=ko'"></script>
+    
+    <!-- 지도 JavaScript -->
+    <script th:if="${apiKey != null}">
+        // 전역 변수
+        let map;
+        let marker;
+        let selectedLatitude = null;
+        let selectedLongitude = null;
+        let searchBox;
+        let placesService;
+        
+        // 기본 위치 (서울시청)
+        const defaultLatitude = /*[[${defaultLatitude}]]*/ 37.5665;
+        const defaultLongitude = /*[[${defaultLongitude}]]*/ 126.9780;
+        
+        // 지도 초기화
+        function initMap() {
+            map = new google.maps.Map(document.getElementById('map'), {
+                center: { lat: defaultLatitude, lng: defaultLongitude },
+                zoom: 15,
+                mapTypeControl: true,
+                streetViewControl: true,
+                fullscreenControl: true,
+                zoomControl: true
+            });
+            
+            // Places 서비스 초기화
+            placesService = new google.maps.places.PlacesService(map);
+            
+            // 검색 박스 초기화
+            const searchInput = document.getElementById('searchInput');
+            searchBox = new google.maps.places.SearchBox(searchInput);
+            
+            // 지도 클릭 이벤트
+            map.addListener('click', function(event) {
+                selectLocation(event.latLng.lat(), event.latLng.lng());
+            });
+            
+            // 검색 박스 이벤트
+            searchBox.addListener('places_changed', function() {
+                const places = searchBox.getPlaces();
+                if (places.length > 0) {
+                    const place = places[0];
+                    if (place.geometry && place.geometry.location) {
+                        selectLocation(place.geometry.location.lat(), place.geometry.location.lng());
+                        map.setCenter(place.geometry.location);
+                        map.setZoom(16);
+                    }
+                }
+            });
+            
+            // 이벤트 리스너 등록
+            document.getElementById('searchBtn').addEventListener('click', function() {
+                const query = searchInput.value.trim();
+                if (query) {
+                    searchLocation(query);
+                }
+            });
+            
+            document.getElementById('currentLocationBtn').addEventListener('click', getCurrentLocation);
+            document.getElementById('getAddressBtn').addEventListener('click', getAddress);
+            document.getElementById('resetBtn').addEventListener('click', resetMap);
+        }
+        
+        // 위치 선택
+        function selectLocation(lat, lng) {
+            selectedLatitude = lat;
+            selectedLongitude = lng;
+            
+            // 기존 마커 제거
+            if (marker) {
+                marker.setMap(null);
+            }
+            
+            // 새 마커 생성
+            marker = new google.maps.Marker({
+                position: { lat: lat, lng: lng },
+                map: map,
+                title: '선택된 위치',
+                animation: google.maps.Animation.DROP
+            });
+            
+            // 위치 정보 표시
+            document.getElementById('latitudeDisplay').textContent = lat.toFixed(6);
+            document.getElementById('longitudeDisplay').textContent = lng.toFixed(6);
+            document.getElementById('locationInfo').style.display = 'block';
+        }
+        
+        // 장소 검색
+        function searchLocation(query) {
+            const request = {
+                query: query,
+                fields: ['name', 'geometry', 'formatted_address']
+            };
+            
+            placesService.findPlaceFromQuery(request, function(results, status) {
+                if (status === google.maps.places.PlacesServiceStatus.OK && results.length > 0) {
+                    const place = results[0];
+                    if (place.geometry && place.geometry.location) {
+                        selectLocation(place.geometry.location.lat(), place.geometry.location.lng());
+                        map.setCenter(place.geometry.location);
+                        map.setZoom(16);
+                    }
+                } else {
+                    alert('검색 결과를 찾을 수 없습니다.');
+                }
+            });
+        }
+        
+        // 현재 위치 가져오기
+        function getCurrentLocation() {
+            if (navigator.geolocation) {
+                navigator.geolocation.getCurrentPosition(
+                    function(position) {
+                        const lat = position.coords.latitude;
+                        const lng = position.coords.longitude;
+                        selectLocation(lat, lng);
+                        map.setCenter({ lat: lat, lng: lng });
+                        map.setZoom(16);
+                    },
+                    function(error) {
+                        alert('현재 위치를 가져올 수 없습니다: ' + error.message);
+                    }
+                );
+            } else {
+                alert('이 브라우저에서는 위치 서비스를 지원하지 않습니다.');
+            }
+        }
+        
+        // 주소 조회
+        function getAddress() {
+            if (selectedLatitude === null || selectedLongitude === null) {
+                alert('위치를 먼저 선택해주세요.');
+                return;
+            }
+            
+            // 로딩 표시
+            document.getElementById('loading').classList.add('show');
+            
+            // 폼 생성 및 제출
+            const form = document.createElement('form');
+            form.method = 'POST';
+            form.action = '/get-address';
+            
+            const latInput = document.createElement('input');
+            latInput.type = 'hidden';
+            latInput.name = 'latitude';
+            latInput.value = selectedLatitude;
+            
+            const lngInput = document.createElement('input');
+            lngInput.type = 'hidden';
+            lngInput.name = 'longitude';
+            lngInput.value = selectedLongitude;
+            
+            form.appendChild(latInput);
+            form.appendChild(lngInput);
+            document.body.appendChild(form);
+            form.submit();
+        }
+        
+        // 지도 초기화
+        function resetMap() {
+            // 마커 제거
+            if (marker) {
+                marker.setMap(null);
+                marker = null;
+            }
+            
+            // 선택된 위치 초기화
+            selectedLatitude = null;
+            selectedLongitude = null;
+            
+            // 지도 중심을 기본 위치로 이동
+            map.setCenter({ lat: defaultLatitude, lng: defaultLongitude });
+            map.setZoom(15);
+            
+            // 위치 정보 숨기기
+            document.getElementById('locationInfo').style.display = 'none';
+            
+            // 검색 박스 초기화
+            document.getElementById('searchInput').value = '';
+        }
+        
+        // Enter 키 이벤트
+        document.getElementById('searchInput').addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') {
+                document.getElementById('searchBtn').click();
+            }
+        });
+        
+        // 페이지 로드 시 지도 초기화
+        window.addEventListener('load', function() {
+            if (typeof google !== 'undefined') {
+                initMap();
+            }
+        });
+    </script>
+    
+    <!-- API 키가 없을 때 표시 -->
+    <script th:if="${apiKey == null}">
+        document.addEventListener('DOMContentLoaded', function() {
+            alert('Google Maps API 키가 설정되지 않았습니다.');
+        });
+    </script>
+</body>
+</html>
