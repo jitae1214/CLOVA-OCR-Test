@@ -1,0 +1,118 @@
+<!DOCTYPE html>
+<html lang="ko" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>메뉴 분석 - OCR 테스트</title>
+    <link rel="stylesheet" href="/css/menu-analysis.css">
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>🍽️ 메뉴 분석</h1>
+            <p class="subtitle">메뉴판 이미지를 업로드하면 AI가 메뉴 이름만 추출해드립니다</p>
+        </header>
+
+        <nav class="nav-menu">
+            <a href="/" class="nav-link">홈으로</a>
+            <a href="/menu-analysis" class="nav-link active">메뉴 분석</a>
+        </nav>
+
+        <main class="main-content">
+            <!-- 오류 메시지 표시 -->
+            <div th:if="${error}" class="alert alert-error">
+                <h3>❌ 오류</h3>
+                <p th:text="${error}"></p>
+                
+                <!-- 설정 도움말 -->
+                <div th:if="${configHelp}" class="config-help">
+                    <h4>설정 방법:</h4>
+                    <ol>
+                        <li>application.properties 파일을 열어주세요</li>
+                        <li>OpenAI API 키를 설정해주세요: <code>openai.api.key=your-api-key</code></li>
+                        <li>애플리케이션을 재시작해주세요</li>
+                    </ol>
+                </div>
+            </div>
+
+            <!-- 업로드 폼 -->
+            <div class="upload-section">
+                <form th:action="@{/analyze-menu}" method="post" enctype="multipart/form-data" class="upload-form">
+                    <div class="upload-area" id="uploadArea">
+                        <div class="upload-content">
+                            <div class="upload-icon">📸</div>
+                            <h3>메뉴판 이미지를 업로드하세요</h3>
+                            <p>JPG, PNG, GIF 파일을 지원합니다 (최대 10MB)</p>
+                            <input type="file" 
+                                   name="imageFile" 
+                                   id="imageFile" 
+                                   accept="image/*" 
+                                   required
+                                   class="file-input">
+                            <button type="button" class="upload-btn" onclick="document.getElementById('imageFile').click()">
+                                파일 선택
+                            </button>
+                        </div>
+                    </div>
+                    
+                    <div class="file-info" id="fileInfo" style="display: none;">
+                        <div class="file-details">
+                            <span class="file-name" id="fileName"></span>
+                            <span class="file-size" id="fileSize"></span>
+                        </div>
+                        <button type="submit" class="analyze-btn">
+                            <span class="btn-text">🔍 메뉴 분석하기</span>
+                            <span class="btn-loading" style="display: none;">분석 중...</span>
+                        </button>
+                    </div>
+                </form>
+            </div>
+
+            <!-- 사용법 안내 -->
+            <div class="usage-guide">
+                <h3>📋 사용법</h3>
+                <div class="guide-steps">
+                    <div class="step">
+                        <div class="step-number">1</div>
+                        <div class="step-content">
+                            <h4>이미지 업로드</h4>
+                            <p>메뉴판 사진을 촬영하거나 업로드하세요</p>
+                        </div>
+                    </div>
+                    <div class="step">
+                        <div class="step-number">2</div>
+                        <div class="step-content">
+                            <h4>OCR 텍스트 추출</h4>
+                            <p>클로바 OCR로 한글 텍스트를 자동 추출합니다</p>
+                        </div>
+                    </div>
+                    <div class="step">
+                        <div class="step-number">3</div>
+                        <div class="step-content">
+                            <h4>AI 메뉴 분석</h4>
+                            <p>OpenAI가 텍스트를 분석하여 메뉴 이름만 추출합니다</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 팁 -->
+            <div class="tips">
+                <h3>💡 더 좋은 결과를 위한 팁</h3>
+                <ul>
+                    <li>메뉴판이 선명하게 보이는 사진을 사용하세요</li>
+                    <li>빛 반사나 그림자가 적은 환경에서 촬영하세요</li>
+                    <li>메뉴판 전체가 잘리지 않도록 주의하세요</li>
+                    <li>한글이 명확하게 읽힐 수 있도록 촬영하세요</li>
+                </ul>
+            </div>
+        </main>
+
+        <footer>
+            <p>&copy; 2024 OCR 테스트 애플리케이션</p>
+        </footer>
+    </div>
+
+    <script src="/js/menu-analysis.js"></script>
+</body>
+</html>

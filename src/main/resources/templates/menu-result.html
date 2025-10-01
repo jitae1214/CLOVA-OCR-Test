@@ -1,0 +1,105 @@
+<!DOCTYPE html>
+<html lang="ko" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>메뉴 분석 결과 - OCR 테스트</title>
+    <link rel="stylesheet" href="/css/menu-analysis.css">
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>🍽️ 메뉴 분석 결과</h1>
+            <p class="subtitle">AI가 분석한 메뉴 목록입니다</p>
+        </header>
+
+        <nav class="nav-menu">
+            <a href="/" class="nav-link">홈으로</a>
+            <a href="/menu-analysis" class="nav-link">메뉴 분석</a>
+            <a href="/menu-analysis" class="nav-link primary">새로 분석</a>
+        </nav>
+
+        <main class="main-content">
+            <!-- 파일 정보 -->
+            <div class="file-info-section">
+                <h3>📁 분석한 파일</h3>
+                <div class="file-details">
+                    <span class="file-name" th:text="${fileName}"></span>
+                    <span class="file-size" th:text="${fileSize}"></span>
+                </div>
+            </div>
+
+            <!-- 결과 메시지 -->
+            <div th:if="${message}" class="result-message" th:classappend="${menuItems != null and !menuItems.isEmpty()} ? 'success' : 'warning'">
+                <p th:text="${message}"></p>
+            </div>
+
+            <!-- 메뉴 분석 결과 -->
+            <div th:if="${menuItems != null and !menuItems.isEmpty()}" class="menu-results">
+                <div class="results-header">
+                    <h3>🎯 추출된 메뉴 목록</h3>
+                    <div class="stats">
+                        <span class="stat">
+                            <strong th:text="${menuItemCount}">0</strong>개의 메뉴
+                        </span>
+                        <span class="stat">
+                            <strong th:text="${originalTextCount}">0</strong>개 텍스트에서 추출
+                        </span>
+                    </div>
+                </div>
+
+                <div class="menu-list">
+                    <div th:each="menuItem, iterStat : ${menuItems}" 
+                         class="menu-item" 
+                         th:attr="data-index=${iterStat.index}">
+                        <div class="menu-number" th:text="${iterStat.index + 1}"></div>
+                        <div class="menu-name" th:text="${menuItem}"></div>
+                        <button class="copy-btn" onclick="copyToClipboard(this)" title="복사">
+                            📋
+                        </button>
+                    </div>
+                </div>
+
+                <div class="actions">
+                    <button onclick="copyAllMenus()" class="action-btn copy-all-btn">
+                        📋 전체 복사
+                    </button>
+                    <button onclick="downloadMenuList()" class="action-btn download-btn">
+                        💾 텍스트 파일로 다운로드
+                    </button>
+                </div>
+            </div>
+
+            <!-- 원본 텍스트 (토글 가능) -->
+            <div class="original-text-section">
+                <button class="toggle-btn" onclick="toggleOriginalText()">
+                    <span class="toggle-text">📄 원본 텍스트 보기</span>
+                    <span class="toggle-icon">▼</span>
+                </button>
+                
+                <div class="original-text" id="originalText" style="display: none;">
+                    <h4>OCR로 추출된 원본 텍스트:</h4>
+                    <div class="text-content">
+                        <div th:each="text, iterStat : ${extractedTexts}" 
+                             class="text-item"
+                             th:text="${text}"></div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 다시 분석하기 -->
+            <div class="new-analysis">
+                <a href="/menu-analysis" class="new-analysis-btn">
+                    🔄 다른 메뉴판 분석하기
+                </a>
+            </div>
+        </main>
+
+        <footer>
+            <p>&copy; 2024 OCR 테스트 애플리케이션</p>
+        </footer>
+    </div>
+
+    <script src="/js/menu-analysis.js"></script>
+</body>
+</html>
