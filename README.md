@@ -343,6 +343,10 @@ if (textBoxes.isEmpty() && !extractedTexts.isEmpty()) {
 - 캐싱 전략 적용
 - CDN 사용 고려
 
+## 📄 라이센스
+
+이 프로젝트는 MIT 라이센스 하에 배포됩니다.
+
 ## 👥 기여하기
 
 ### Git 커밋 전 체크리스트
